@@ -1,27 +1,13 @@
 module Plexus
 
-if isfile(raw"c:\users\matt\ntuser.ini")
-	lib = raw"C:\Users\matt\Documents\power\Lib"
-	dbdir = raw"C:\Users\matt\Documents\power\SQLite.Data"
-	outdir = raw"C:\Users\matt\Documents\power"
-	
-else
-	lib = raw"Z:\Maintenance\Matt-Heath\Lib"
-	dbdir = raw"Z:\Maintenance\Matt-Heath\power\SQLite.Data"
-	outdir = raw"Z:\Maintenance\PPM"
-end
-
-push!(LOAD_PATH, lib)
-
-
-push!(LOAD_PATH, raw"Z:\Maintenance\Matt-Heath\Lib")
 using HTMLParser
 using Cache
 
 export Plex, WorkRequest, work_requests, work_request, pm_list, work_requests_pms, PMFilter, pm_report
 
 using PyCall
-unshift!(PyVector(pyimport("sys")["path"]), lib)
+println(pwd())
+unshift!(PyVector(pyimport("sys")["path"]), realpath("GitHub/plex"))
 
 @pyimport PyPlex
 
