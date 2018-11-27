@@ -3,7 +3,7 @@ module Plexus
 using HTMLParser
 using Cache
 
-export Plex, WorkRequest, work_requests, work_request, pm_list, work_requests_pms, PMFilter, pm_report
+export Plex, WorkRequest, work_requests, work_request, pm_list, work_requests_pms, PMFilter, pm_report, equipment
 
 using PyCall
 println(pwd())
@@ -31,33 +31,22 @@ function users!(p::Plex)
 	p.values["Users"] = p.py[:userlist]()
 end
 
-function equipment!(p::Plex)
-	
-	return p.py[:equiplist]()
-	
-	function proc(t::StartTag)
-		attr(k) = get(t.attrs, k, "")
-		vtable = Dict(
-			"a"=>()->begin end,
-			"td"=>()->begin end
-			)
-		get(vtable, t.name, ()->nothing)();
+function equipment(p::Plex, lines)
+	eq = Vector()
+	for (k,txt) in p.py[:equiplist]()
+		bt = split(txt, ' ')
+		ains = [a in lines for a in bt]
+		if any(ains)
+			line = first(bt[ains])
+			if line == "OOS"
+				continue
+			end
+		else
+			line = "Other"
+		end
+		push!(eq, (k, txt, line))
 	end
-	
-	proc(t::Data) = begin end
-
-	function proc(t::EndTag)
-	end
-	
-	proc(b::Block) = nothing
-	
-	k = 1
-	for blk in HTMLParser.HTML(cache("equiplist", p.py[:equiplist])).blks
-		println("K $k ", blk)
-		k += 1
-	end
-
-	#p.values["Equipment"] = p.py[:equiplist]()
+	eq
 end
 
 struct WorkOrderListing
