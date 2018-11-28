@@ -273,7 +273,7 @@ struct PM_listing
 	maintfrm
 end
 
-function pm_list(p::Plex)
+function plex_pms(p::Plex)
 	inpms = false
 	inbody = false
 	inpm = false
@@ -358,8 +358,6 @@ function pm_list(p::Plex)
 			end
 		end
 	end
-	
-
 	pms
 end
 
