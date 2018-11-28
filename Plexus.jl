@@ -361,14 +361,13 @@ function plex_pms(p::Plex)
 	pms
 end
 
-function pm_report(p::Plex)
+function pm_report(p::Plex, chan)
 	inpm = false
 	ChkNo = ""
 	EquipKey = ""
 	LastComplete = ""
 	DueDate = ""
 	dk = 0
-	pms = Vector()
 	
 	function proc(t::StartTag)
 		attr(k) = get(t.attrs, k, "")
@@ -412,8 +411,7 @@ function pm_report(p::Plex)
 	function proc(t::EndTag)
 		if inpm && t.name == "tr"
 			inpm = false
-			
-			push!(pms, (LastComplete, DueDate, ChkNo, EquipKey))
+			put!(chan, (LastComplete, DueDate, ChkNo, EquipKey))
 		end
 	end
 	
@@ -422,7 +420,6 @@ function pm_report(p::Plex)
 	rawhtml = cache("pm_report", ()->p.py[:pm_report]())
 
 	foreach(proc, HTMLParser.HTML(rawhtml).blks)
-	pms
 end
 
 
