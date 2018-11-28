@@ -3,7 +3,7 @@ module Plexus
 using HTMLParser
 using Cache
 
-export Plex, WorkRequest, work_requests, work_request, pm_list, work_requests_pms, PMFilter, pm_report, equipment
+export Plex, WorkRequest, work_requests, work_request, plex_pms, work_requests_pms, PMFilter, pm_report, equipment
 
 using PyCall
 println(pwd())
