@@ -61,9 +61,9 @@ function work_order_list(t)
 	key = ""
 	no = ""
 	line = ""
-	
+
 	wols = Vector{WorkOrderListing}()
-	
+
 	function proc(t::StartTag)
 		attr(k) = get(t.attrs, k, "")
 		vtable = Dict(
@@ -74,13 +74,13 @@ function work_order_list(t)
 						key = split(qs[2], '=')[2]
 						no = split(qs[3], '=')[2]
 					end
-				end, 
+				end,
 			"td"=>()->
 				line = ""
 			)
 		get(vtable, t.name, ()->nothing)();
 	end
-	
+
 	proc(t::Data) = line = "$line$(t.data)";
 
 	function proc(t::EndTag)
@@ -93,9 +93,9 @@ function work_order_list(t)
 			end
 		end
 	end
-	
+
 	proc(b::Block) = nothing
-	
+
 	foreach(proc, HTMLParser.HTML(t).blks)
 	filter((w)->w.no!="", wols)
 end
@@ -135,38 +135,39 @@ end
 function work_requests(p::Plex, dstart::DateTime, dend::DateTime, by::Tuple{String, String})
 
 	wos, html = p.py[:work_request_list](Dict("fltBegin_Date_DTE"=>Base.Dates.format(dstart, "d/m/yy"), "fltEnd_Date_DTE"=>Base.Dates.format(dend, "d/m/yy"), "hdnApplication_Filter_Default_Control_Application_Key"=>"1406", "hdnApplication_Filter_Default_Control_No_Delete"=>"0", "hdnApplication_Filter_Default_Control_Allow_Empty_Default"=>"1", "flttxtRequested_By"=>by[2], "fltRequested_By"=>by[1], "fltWR_Sort_Order"=>"Work_Request_No,Due_Date", "fltWR_Sort_Ordering"=>"ASC", "fltActive"=>"1", "hdnRecordsExist"=>"0"))
-	
+
 	users = get!(p.values, "Users", users!(p))
 	equip = get!(p.values, "Equipment", equipment!(p))
 
 	foreach(println, wos)
-	
+
 	h_wrl = work_order_list(html)
-	
+
 	foreach(println, h_wrl)
 
 	h_wos = Dict(wo.no=>WorkRequest(wo.no, wo.line, p.py[:work_request](wo.url), users, equip) for wo in h_wrl)
-	
+
 	println(h_wos)
 
 	p_wos = Dict(wo[:no]=>WorkRequest(wo[:no], wo[:line],  p.py[:work_request](wo[:url]), users, equip) for wo in wos)
-	
+
 	println(p_wos)
-	
+
 	p_wos
 end
 
 
 function work_requests_pms(p::Plex, dstart::Date, dend::Date, complete::Bool; filter::PMFilter=WR_all, line="")
+	error("work_requests_pms Doesn't work")
 	params = Dict(
-	"hdnApplication_Filter_Default_Control_Application_Key"=>"1406", 
-	"fltWR_Sort_Order"=>"Work_Request_No,Due_Date", 
-	"fltWR_Sort_Ordering"=>"ASC", 
-	"hdnApplication_Filter_Default_Control_No_Delete"=>"0", 
-	"hdnApplication_Filter_Default_Control_Allow_Empty_Default"=>"1", 
-	"fltBegin_Date_DTE"=>Base.Dates.format(dstart, "d/m/yy"), 
+	"hdnApplication_Filter_Default_Control_Application_Key"=>"1406",
+	"fltWR_Sort_Order"=>"Work_Request_No,Due_Date",
+	"fltWR_Sort_Ordering"=>"ASC",
+	"hdnApplication_Filter_Default_Control_No_Delete"=>"0",
+	"hdnApplication_Filter_Default_Control_Allow_Empty_Default"=>"1",
+	"fltBegin_Date_DTE"=>Base.Dates.format(dstart, "d/m/yy"),
 	"fltEnd_Date_DTE"=>Base.Dates.format(dend, "d/m/yy"))
-	
+
 	if line != ""
 		params["fltEquipment_Group"] = line
 	end
@@ -178,10 +179,12 @@ function work_requests_pms(p::Plex, dstart::Date, dend::Date, complete::Bool; fi
 	elseif filter == WR_not_pms
 		params["fltInclude_PM"] = "0"
 	end
-	
-	cache("work_request_csv_$(Dates.value(dstart))_$(Dates.value(dend))_$(line)", ()->p.py[:work_request_csv](params))
+
+	#cache("work_request_csv_$(Dates.value(dstart))_$(Dates.value(dend))_$(line)", ()->p.py[:work_request_csv](params))
+	p.py[:work_request_csv](params)
+
 end
-		
+
 
 struct Maint_frm
 	priority
@@ -189,7 +192,7 @@ struct Maint_frm
 	sinstruct
 	tasklist
 end
-	
+
 
 function pm_maint_frm(p::Plex, url)
 
@@ -198,23 +201,23 @@ function pm_maint_frm(p::Plex, url)
 	insi = false
 	intasks = false
 	intask = false
-	
+
 	taskrow = 0
 	tcell = 0
-	
+
 	priority = ""
 	hours = ""
 	sinstruct = ""
 	task = ""
 	tasklist = Vector{String}()
-	
+
 	function proc(b::StartTag)
 		vt = Dict( "select"=>()->if get(b.attrs, "name", "") == "lstPriority" inpsel = true end
 				 , "option"=>()->if inpsel && get(b.attrs, "selected", "") != "" inp=true end
 				 , "input"=>()->if get(b.attrs, "name", "") == "txtScheduled_Hours_DEC" hours = parse(Float32, get(b.attrs, "value", "0")) end
 				 , "textarea"=>()->if get(b.attrs, "name", "") == "txtSpecial_Instructions_TXA_500" insi = true end
 				 , "th"=>()->if get(b.attrs, "class", "") == "Module_Title"
-								intasks = true 
+								intasks = true
 								taskrow = 0
 							end
 				, "tbody"=>()->begin taskrow = taskrow + 1 end
@@ -222,23 +225,23 @@ function pm_maint_frm(p::Plex, url)
 				, "td"=>()->if taskrow > 0 tcell += 1 end
 				, "b"=>()->if taskrow > 1 intask=true end
 				)
-		get(vt, b.name, ()->nothing)()	
+		get(vt, b.name, ()->nothing)()
 	end
 
 	function proc(b::Data)
-		if inp 
+		if inp
 			priority = b.data
 			inp = false
 			inpsel = false
 			return
 		end
-		
+
 		if insi
 			sinstruct = b.data == "\r\n\t\t\t" ? "" : b.data
 			insi = false
 			return
 		end
-		
+
 		if intask
 			task = b.data
 			intask = false
@@ -246,17 +249,17 @@ function pm_maint_frm(p::Plex, url)
 			return
 		end
 	end
-	
+
 	function proc(b::EndTag)
-	
+
 	end
-	
+
 	proc(b::Block) = nothing
 	maint_frm_html = cache("maint_frm_html_" * replace(Base.Base64.base64encode(url), ['=', '/'], ""), ()->p.py[:pm_maint_frm](url))
 	for blk in HTMLParser.HTML(maint_frm_html).blks
 		proc(blk)
 	end
-	
+
 
 	Maint_frm(priority, hours, sinstruct, tasklist)
 end
@@ -287,7 +290,7 @@ function plex_pms(p::Plex)
 	maintfrm = ""
 
 	k = 0
-	
+
 	function proc(b::StartTag)
 		vt = Dict( "table"=>()->if get(b.attrs, "class", "") == "StandardGrid"
 						inpms = true
@@ -297,34 +300,34 @@ function plex_pms(p::Plex)
 						inpm = true
 					end
 			)
-		get(vt, b.name, ()->nothing)()	
+		get(vt, b.name, ()->nothing)()
 	end
-	
-	
+
+
 	function proc(b::EndTag)
-		vt = Dict("tr" =>()-> if inpms && inpm 
+		vt = Dict("tr" =>()-> if inpms && inpm
 						inpm = false
 						k = 0
 					end
 					,"table"=>()->begin inpms = false end
 			)
-		get(vt, b.name, ()->nothing)()	
+		get(vt, b.name, ()->nothing)()
 	end
-	
+
 	proc(b::Block) = nothing
-	
+
 	pms = Vector{PM_listing}()
-	
+
 	pm_list_html = cache("pm_list_html", p.py[:pm_list])
-	
+
 	for blk in HTMLParser.HTML(pm_list_html).blks
 		proc(blk)
-		
+
 		if inpm
 			k = k + 1
-			
+
 			#println("K ", k, " ", blk)
-	
+
 			if k == 2
 				equiptxt = blk.data
 				continue
@@ -350,11 +353,11 @@ function plex_pms(p::Plex)
 			end
 			if k == 24
 				freq = split(blk.data, ' ', limit=2)[1]
-				
+
 				mbits = split(maintfrm, ['=', '&'])
 				push!(pms, PM_listing(checklist_no, mbits[6], pmtitle, start, freq, mbits[4], equiptxt, schedfrm, pm_maint_frm(p, maintfrm)))
 				continue
-				
+
 			end
 		end
 	end
@@ -368,7 +371,7 @@ function pm_report(p::Plex, chan)
 	LastComplete = ""
 	DueDate = ""
 	dk = 0
-	
+
 	function proc(t::StartTag)
 		attr(k) = get(t.attrs, k, "")
 		vtable = Dict(
@@ -377,21 +380,22 @@ function pm_report(p::Plex, chan)
 					inpm = true
 					dk = 0
 				end
-				end, 
+				end,
 			"a"=>()->
 				if inpm
 					bits = split(attr("href"), "&amp;")
 					if length(bits) > 3
 						ChkNo = split(bits[2], '=')[2]
 						EquipKey = split(bits[3], '=')[2]
-					end					
+					end
 				end
 			)
 		get(vtable, t.name, ()->nothing)();
 	end
-	
+
 	function proc(t::Data)
-		if inpm			
+		if inpm
+			#println("dk ", dk, " ", t)
 			dk += 1
 			if dk == 5
 				if t.data == "&nbsp;"
@@ -414,9 +418,9 @@ function pm_report(p::Plex, chan)
 			put!(chan, (LastComplete, DueDate, ChkNo, EquipKey))
 		end
 	end
-	
+
 	proc(b::Block) = nothing
-	
+
 	rawhtml = cache("pm_report", ()->p.py[:pm_report]())
 
 	foreach(proc, HTMLParser.HTML(rawhtml).blks)

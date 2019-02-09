@@ -58,7 +58,7 @@ class ParseWorkOrderList(HTMLParser):
 			self.line = ""
 
 	def handle_data(self, data) :
-		self.line += data 
+		self.line += data
 
 	def handle_endtag(self, tag) :
 		if self.wo == None:
@@ -76,7 +76,7 @@ class ParseForm(HTMLParser):
 	chkcnt = {}
 	select_name = ""
 	in_field = False
-	
+
 	def handle_starttag(self, tag, attrs):
 		def srch_a(key):
 			for (k,v) in attrs :
@@ -84,69 +84,69 @@ class ParseForm(HTMLParser):
 					if v == None:
 						return True
 					return v
-					
-		if tag == "input" :			
+
+		if tag == "input" :
 			n = srch_a("name")
 			if srch_a("type") == "checkbox" :
 				k = self.chkcnt.get(n, 1)
 				self.chkcnt[n] = k+1
 				n += "_%d" % k
 				self.fields[n] = (srch_a("value"), srch_a("retval"))
-			else:	
+			else:
 				self.fields[n] = srch_a("value")
 			return
-			
+
 		if tag == "select" :
 			self.fieldname = srch_a("name")
 			return
-			
+
 		if tag == "option" :
 			if srch_a("selected"):
 				self.in_field = True
 				self.fields[self.fieldname] = (srch_a("value"), "")
 			return
-			
+
 		if tag == "textarea" :
 			self.fieldname = srch_a("name")
 			self.in_field = True
 			self.fields[self.fieldname] = ""
 			return
-	
+
 	def handle_data(self, data):
 		if self.in_field:
 			if type(self.fields[self.fieldname]) == type((None,None)) :
 				self.fields[self.fieldname] = (self.fields[self.fieldname][0], self.fields[self.fieldname][1] + data)
 			else:
-				self.fields[self.fieldname] += data 
+				self.fields[self.fieldname] += data
 			return
-			
-	def handle_entityref(self, name): 
+
+	def handle_entityref(self, name):
 		if self.in_field :
 			data = self.unescape('&amp;')
 			self.fields[self.fieldname] += data
 			self.fields[self.fieldname] += name
-				
+
 	def handle_endtag(self, tag):
 		if tag == "select":
 			self.fieldname = ""
 			return
-			
+
 		if tag == "option":
 			self.in_field = False
 			return
-		
+
 		if tag == "textarea":
 			self.in_field = False
 			self.fieldname = ""
 			return
-			
+
 
 class PyPlex:
 	last_url = ""
 	last_r = None
 	viewstate = ""
 	key = ""
-	
+
 	def __init__(self, un, pw, cc):
 		self.session = requests.Session()
 		self.get("/Modules/SystemAdministration/Login/Index.aspx")
@@ -154,25 +154,25 @@ class PyPlex:
 		self.get("/Modules/SystemAdministration/Login/Login.aspx")
 		self.post("/Modules/SystemAdministration/Login/Login.aspx", {"__VIEWSTATE":self.viewstate,"browserMinorVersion":"undefined", "screenHeight":"900", "screenWidth":"1600", "screenDepth":"24", "browserName":"Netscape", "browserVersion":"5.0 (Windows)", "platform":"Win64"})
 		self.key = self.session.cookies["Session_Key"][1:-1].lower()
-		
+
 	def static(self, url, params={}, headers={}):
 		if not "Referer" in headers:
 			headers["Referer"] = self.last_url
-		
+
 		self.last_r = self.session.get("https://static.plexonline.com" + url, verify=VerifySSL, headers=headers, params=params)
-		
+
 	def script(self, url, params={}, headers={}):
 		if not "Referer" in headers:
 			headers["Referer"] = self.last_url
-			
+
 		self.last_r = self.session.get("https://www.plexonline.com" + url, verify=VerifySSL, headers=headers, params=params)
 		self.last_url = url
 
 	def get(self, url, params={}, headers={}):
-	
+
 		if not "Referer" in headers:
 			headers["Referer"] = self.last_url
-			
+
 		self.last_r = self.session.get("https://www.plexonline.com" + url, verify=VerifySSL, headers=headers, params=params)
 		self.last_url = url
 		vs = self.find_viewstate()
@@ -180,10 +180,10 @@ class PyPlex:
 			self.viewstate = vs
 
 	def post(self, url, data, headers={}):
-	
+
 		if not "Referer" in headers:
 			headers["Referer"] = self.last_url
-			
+
 		self.last_r = self.session.post("https://www.plexonline.com" + url, data, verify=VerifySSL, headers=headers)
 		self.last_url = url
 		vs = self.find_viewstate()
@@ -205,11 +205,11 @@ class PyPlex:
 		wos.feed(self.last_r.text)
 		self.record_html("work_request_list")
 		return wos.orders, self.last_r.text
-	
-	def work_request_csv(self, params):	
+
+	def work_request_csv(self, params):
 		self.get("/" + self.key + "/Equipment/Work_Request.asp")
 		ps = {"hdnApplication_Filter_Default_Control_Application_Key":"", "hdnApplication_Filter_Default_Control_No_Delete":"", "hdnApplication_Filter_Default_Control_Allow_Empty_Default":"", "flttxtEquipment":"", "fltEquipment":"", "fltDescription":"", "flttxtWork_Request_Status":"", "fltWork_Request_Status":"", "flttxtEquipment_Type":"", "fltEquipment_Type":"", "flttxtAssigned_To":"", "fltAssigned_To":"", "flttxtRequested_By":"", "fltRequested_By":"", "fltPriority":"", "flttxtType":"", "fltType":"", "fltWR_Sort_Order":"", "fltWR_Sort_Ordering":"", "fltActive":"", "fltRequest_No":"", "fltBegin_Date_DTE":"", "fltEnd_Date_DTE":"", "fltDue_Date1_DTE":"", "fltDue_Date2_DTE":"", "flttxtBuildings":"", "fltBuildings":"", "fltEquipment_Group":"", "fltInclude_PM":"", "flttxtLocation":"", "fltLocation":"", "flttxtParts":"", "fltParts":"", "fltAsset_No":"", "flttxtAssignToUsersList":"", "fltAssignToUsersList":"", "hdnRecordsExist":""}
-	
+
 		for p in params:
 			ps[p] = params[p]
 		ps["hdnRecordsExist"] = "0"
@@ -221,10 +221,11 @@ class PyPlex:
 		ps["txthdnRequested_By_PUN"] = ""
 		ps["hdnDue_Date_PUN_DTE"] = ""
 		ps["hdnStatus_PUN"] = "0"
-		ps["txthdnStatus_PUN"] = ""	
+		ps["txthdnStatus_PUN"] = ""
 		ps["hdnRecordsExist"] = "1"
-	
+
 		self.post("/" + self.key + "/Download_Apps/CSV/Build_CSV3.asp", ps)
+		
 		return self.last_r.text
 
 	def work_request(self, wourl):
@@ -255,22 +256,22 @@ class PyPlex:
 		fid = open("C:\\Users\\C18610\\_cache\\%s.html" % fn, "w+")
 		fid.write(self.last_r.text)
 		fid.close()
-		
-	
+
+
 	def pm_list(self):
 		self.post("/" + self.key + "/Equipment/Maintenance.asp?ssAction=Back", {})
 		return self.last_r.text
-		
+
 	def pm_maint_frm(self, url):
 		self.get("/" + self.key + "/Equipment/" + url)
 		return self.last_r.text
-		
+
 	def pm_report(self):
-			
+
 		self.get("/" + self.key + "/Rendering_Engine/default.aspx?Request=Show&RequestData=SourceType(Screen)SourceKey(10608)", headers={"Referer":"https://www.plexonline.com/" + self.key + "/Report_System/Report_List.asp"})
-		
+
 		headers = {"Pragma":"no-cache", "Content-Type":"application/x-www-form-urlencoded", "RenderType":"Partial", "PanelTargets":"FILTER_PANEL_2_28:True|GRID_PANEL_3_28:False|",  "Referer": "https://www.plexonline.com/" + self.key + "/Rendering_Engine/default.aspx?Request=Show&RequestData=SourceType(Screen)SourceKey(10608)"}
 
 		self.post("/" + self.key + "/Rendering_Engine/default.aspx?Request=Show&RequestData=SourceType(Screen)SourceKey(10608)", "undefined__EVENTTARGET=&__EVENTARGUMENT=&__LASTFOCUS=&__VIEWSTATE=%2F" + self.viewstate[1:-1] + "%3D&hdnScreenTitle=PM%20Requirement%20Report&hdnFilterElementsKeyHandle=172744%2F%5CResponsibility%5B%5D172761%2F%5CEquipment_ID%5B%5D172762%2F%5CBuilding_Keys_new%5B%5D172765%2F%5CChecklist_Key_new%5B%5D534809%2F%5CActive&=&ScreenParameters=&RequestKey=0&Layout1$el_172761=&Layout1$el_172761_hf=&Layout1$el_172761_hf_last_valid=&Layout1$el_172765=&Layout1$el_172744=&Layout1$el_172744_hf=&Layout1$el_172744_hf_last_valid=&Layout1$el_534809=1&Layout1$el_172762=&Layout1$el_172762_hf=&Layout1$el_172762_hf_last_valid=&panel_row_count_3=0&", headers=headers)
-		
+
 		return self.last_r.text
